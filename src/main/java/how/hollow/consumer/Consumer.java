@@ -21,33 +21,23 @@ import com.netflix.hollow.api.consumer.HollowConsumer;
 import com.netflix.hollow.api.consumer.fs.HollowFilesystemAnnouncementWatcher;
 import com.netflix.hollow.api.consumer.fs.HollowFilesystemBlobRetriever;
 import com.netflix.hollow.api.consumer.index.HashIndex;
-import com.netflix.hollow.api.consumer.index.UniqueKeyIndex;
+import com.netflix.hollow.core.read.engine.HollowReadStateEngine;
+import com.netflix.hollow.core.read.engine.HollowTypeReadState;
 import com.netflix.hollow.explorer.ui.jetty.HollowExplorerUIServer;
 import com.netflix.hollow.history.ui.jetty.HollowHistoryUIServer;
-import how.hollow.consumer.api.generated.Actor;
-import how.hollow.consumer.api.generated.Movie;
-import how.hollow.consumer.api.generated.MovieAPI;
-import how.hollow.producer.Producer;
+import how.hollow.consumer.api.generated.AdsTxtEntryDTO;
+import how.hollow.consumer.api.generated.DomainSetsApi;
+
 import java.io.File;
 
 public class Consumer {
+
+    public static final String SCRATCH_DIR = System.getProperty("java.io.tmpdir");
+    
     
     public static void main(String args[]) throws Exception {
-        File publishDir = new File(Producer.SCRATCH_DIR, "publish-dir");
-        
-        System.out.println("I AM THE CONSUMER.  I WILL READ FROM " + publishDir.getAbsolutePath());
-
-        HollowConsumer.BlobRetriever blobRetriever = new HollowFilesystemBlobRetriever(publishDir.toPath());
-        HollowConsumer.AnnouncementWatcher announcementWatcher = new HollowFilesystemAnnouncementWatcher(publishDir.toPath());
-        
-        HollowConsumer consumer = HollowConsumer.withBlobRetriever(blobRetriever)
-                                                .withAnnouncementWatcher(announcementWatcher)
-                                                .withGeneratedAPIClass(MovieAPI.class)
-                                                .build();
-
-        consumer.triggerRefresh();
-
-        hereIsHowToUseTheDataProgrammatically(consumer);
+        HollowConsumer consumer = startConsumer(new File(SCRATCH_DIR, "publish-dir"), "019agora.com.br");
+        HollowConsumer consumerApp = startConsumer(new File(SCRATCH_DIR, "publish-dir-app"), "wcyb.com");
 
         /// start a history server on port 7777
         HollowHistoryUIServer historyServer = new HollowHistoryUIServer(consumer, 7777);
@@ -57,28 +47,55 @@ public class Consumer {
         HollowExplorerUIServer explorerServer = new HollowExplorerUIServer(consumer, 7778);
         explorerServer.start();
 
+
+        /// start a history server on port 7779
+        HollowHistoryUIServer historyServerApp = new HollowHistoryUIServer(consumerApp, 7779);
+        historyServerApp.start();
+
+        /// start an explorer server on port 7780
+        HollowExplorerUIServer explorerServerApp = new HollowExplorerUIServer(consumerApp, 7780);
+        explorerServerApp.start();
+
         historyServer.join();
     }
 
-    private static void hereIsHowToUseTheDataProgrammatically(HollowConsumer consumer) {
-        /// create an index for Movie based on its primary key (Id)
-        UniqueKeyIndex<Movie, Integer> idx = Movie.uniqueIndex(consumer);
+    private static HollowConsumer startConsumer(File publishDir, String exampleQueryElement) {
+        System.out.println("I AM THE CONSUMER.  I WILL READ FROM " + publishDir.getAbsolutePath());
 
-        /// create an index for movies by the names of cast members
-        HashIndex<Movie, String> moviesByActorName = HashIndex.from(consumer, Movie.class)
-            .usingPath("actors.element.actorName.value", String.class);
+        HollowConsumer.BlobRetriever blobRetriever = new HollowFilesystemBlobRetriever(publishDir.toPath());
+        HollowConsumer.AnnouncementWatcher announcementWatcher = new HollowFilesystemAnnouncementWatcher(publishDir.toPath());
 
-        /// find the movie for a some known ID
-        Movie foundMovie = idx.findMatch(1000004);
+        HollowConsumer consumer = HollowConsumer.withBlobRetriever(blobRetriever)
+                                                .withAnnouncementWatcher(announcementWatcher)
+                                                .withGeneratedAPIClass(DomainSetsApi.class)
+                                                .build();
 
-        /// for each actor in that movie
-        for(Actor actor : foundMovie.getActors()) {
-            /// get all of movies of which they are cast members
-            moviesByActorName.findMatches(actor.getActorName()).forEach(movie -> {
-                /// and just print the result
-                System.out.println(actor.getActorName() + " starred in " + movie.getTitle());
-            });
-        }
+        consumer.triggerRefresh();
+
+        HashIndex<AdsTxtEntryDTO, String> findByDomain = HashIndex.from(consumer, AdsTxtEntryDTO.class)
+            .usingPath("domain.value", String.class);
+
+        findByDomain.findMatches(exampleQueryElement).forEach(adsTxtEntryDTO -> {
+            System.out.println("From " + adsTxtEntryDTO.toString());
+        });
+
+        System.out.println("Total memory read from " + publishDir.getName() + ": " + memStat(consumer));
+        return consumer;
     }
-    
+
+    public static long memStat(HollowConsumer consumer) {
+        HollowReadStateEngine stateEngine = consumer.getStateEngine();
+
+        long totalApproximateHeapFootprint = 0;
+
+        for(HollowTypeReadState typeState : stateEngine.getTypeStates()) {
+            String typeName = typeState.getSchema().getName();
+            long heapCost = typeState.getApproximateHeapFootprintInBytes();
+            System.out.println(typeName + ": " + heapCost);
+            totalApproximateHeapFootprint += heapCost;
+        }
+
+        return totalApproximateHeapFootprint;
+    }
+
 }

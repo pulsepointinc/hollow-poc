@@ -76,9 +76,9 @@
        <artifactId>hollow-maven-plugin</artifactId>
        <version>1.1.0-SNAPSHOT</version>
        <configuration>
-         <apiClassName>MovieAPI</apiClassName>
+         <apiClassName>DomainSetsApi</apiClassName>
          <apiPackageName>how.hollow.consumer.api.generated</apiPackageName>
-         <packagesToScan>how.hollow.producer.datamodel</packagesToScan>
+         <packagesToScan>how.hollow.producer.domain.adstxt</packagesToScan>
        </configuration>
        <executions>
          <execution>

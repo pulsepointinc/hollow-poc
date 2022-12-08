@@ -1,11 +1,9 @@
 package how.hollow.consumer.api.generated.index;
 
 import com.netflix.hollow.core.type.*;
-import how.hollow.consumer.api.generated.MovieAPI;
-import how.hollow.consumer.api.generated.Movie;
-import how.hollow.consumer.api.generated.Actor;
+import how.hollow.consumer.api.generated.DomainSetsApi;
+import how.hollow.consumer.api.generated.AdsTxtEntryDTO;
 import how.hollow.consumer.api.generated.core.*;
-import how.hollow.consumer.api.generated.collections.*;
 
 import com.netflix.hollow.api.consumer.HollowConsumer;
 import com.netflix.hollow.core.index.HollowHashIndexResult;
@@ -28,13 +26,13 @@ import com.netflix.hollow.api.consumer.data.AbstractHollowOrdinalIterable;
  */
 @Deprecated
 @SuppressWarnings("all")
-public class MovieAPIHashIndex extends AbstractHollowHashIndex<MovieAPI> {
+public class DomainSetsApiHashIndex extends AbstractHollowHashIndex<DomainSetsApi> {
 
-    public MovieAPIHashIndex(HollowConsumer consumer, String queryType, String selectFieldPath, String... matchFieldPaths) {
+    public DomainSetsApiHashIndex(HollowConsumer consumer, String queryType, String selectFieldPath, String... matchFieldPaths) {
         super(consumer, false, queryType, selectFieldPath, matchFieldPaths);
     }
 
-    public MovieAPIHashIndex(HollowConsumer consumer, boolean isListenToDataRefresh, String queryType, String selectFieldPath, String... matchFieldPaths) {
+    public DomainSetsApiHashIndex(HollowConsumer consumer, boolean isListenToDataRefresh, String queryType, String selectFieldPath, String... matchFieldPaths) {
         super(consumer, isListenToDataRefresh, queryType, selectFieldPath, matchFieldPaths);
     }
 
@@ -49,35 +47,13 @@ public class MovieAPIHashIndex extends AbstractHollowHashIndex<MovieAPI> {
         };
     }
 
-    public Iterable<Actor> findActorMatches(Object... keys) {
+    public Iterable<AdsTxtEntryDTO> findAdsTxtEntryDTOMatches(Object... keys) {
         HollowHashIndexResult matches = idx.findMatches(keys);
         if(matches == null) return Collections.emptySet();
 
-        return new AbstractHollowOrdinalIterable<Actor>(matches.iterator()) {
-            public Actor getData(int ordinal) {
-                return api.getActor(ordinal);
-            }
-        };
-    }
-
-    public Iterable<SetOfActor> findSetOfActorMatches(Object... keys) {
-        HollowHashIndexResult matches = idx.findMatches(keys);
-        if(matches == null) return Collections.emptySet();
-
-        return new AbstractHollowOrdinalIterable<SetOfActor>(matches.iterator()) {
-            public SetOfActor getData(int ordinal) {
-                return api.getSetOfActor(ordinal);
-            }
-        };
-    }
-
-    public Iterable<Movie> findMovieMatches(Object... keys) {
-        HollowHashIndexResult matches = idx.findMatches(keys);
-        if(matches == null) return Collections.emptySet();
-
-        return new AbstractHollowOrdinalIterable<Movie>(matches.iterator()) {
-            public Movie getData(int ordinal) {
-                return api.getMovie(ordinal);
+        return new AbstractHollowOrdinalIterable<AdsTxtEntryDTO>(matches.iterator()) {
+            public AdsTxtEntryDTO getData(int ordinal) {
+                return api.getAdsTxtEntryDTO(ordinal);
             }
         };
     }
