@@ -27,6 +27,7 @@ import com.netflix.hollow.api.producer.HollowProducer.Publisher;
 import com.netflix.hollow.api.producer.fs.HollowFilesystemAnnouncer;
 import com.netflix.hollow.api.producer.fs.HollowFilesystemPublisher;
 import how.hollow.producer.domain.adstxt.AdsTxtEntryDTO;
+import how.hollow.producer.domain.index.Conversions;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
@@ -87,7 +88,12 @@ public class Producer implements Runnable {
                 new Producer(new File(SCRATCH_DIR, "publish-dir-app"), "appadstxt_crawler_entries", Producer::mappingAdsTxtEntryDTO)
         );
 
-        CompletableFuture.allOf(adstxtCrawlerEntries, appadstxtCrawlerEntries).join();
+        CompletableFuture<Void> conversations = CompletableFuture.runAsync(
+                new Producer(new File(SCRATCH_DIR, "publish-dir-conversions"), "conversions", Producer::mappingConverstaions)
+        );
+
+
+        CompletableFuture.allOf(adstxtCrawlerEntries, appadstxtCrawlerEntries, conversations).join();
     }
 
     public void run() {
@@ -161,6 +167,10 @@ public class Producer implements Runnable {
 
     private static AdsTxtEntryDTO mappingAdsTxtEntryDTO(String[] split) {
         return new AdsTxtEntryDTO(split[0], split[2], split[3]);
+    }
+
+    private static Conversions mappingConverstaions(String[] split) {
+        return new Conversions(Long.parseLong(split[0]), split[1]);
     }
 
     private static void waitForMinCycleTime(long lastCycleTime) {

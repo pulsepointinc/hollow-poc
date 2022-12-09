@@ -2,6 +2,7 @@ package how.hollow.consumer.api.generated.index;
 
 import com.netflix.hollow.core.type.*;
 import how.hollow.consumer.api.generated.DomainSetsApi;
+import how.hollow.consumer.api.generated.Conversions;
 import how.hollow.consumer.api.generated.AdsTxtEntryDTO;
 import how.hollow.consumer.api.generated.core.*;
 
@@ -54,6 +55,17 @@ public class DomainSetsApiHashIndex extends AbstractHollowHashIndex<DomainSetsAp
         return new AbstractHollowOrdinalIterable<AdsTxtEntryDTO>(matches.iterator()) {
             public AdsTxtEntryDTO getData(int ordinal) {
                 return api.getAdsTxtEntryDTO(ordinal);
+            }
+        };
+    }
+
+    public Iterable<Conversions> findConversionsMatches(Object... keys) {
+        HollowHashIndexResult matches = idx.findMatches(keys);
+        if(matches == null) return Collections.emptySet();
+
+        return new AbstractHollowOrdinalIterable<Conversions>(matches.iterator()) {
+            public Conversions getData(int ordinal) {
+                return api.getConversions(ordinal);
             }
         };
     }

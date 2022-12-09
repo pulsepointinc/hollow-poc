@@ -36,9 +36,11 @@ public class DomainSetsApi extends HollowAPI implements  HollowConsumerAPI.Strin
 
     private final StringTypeAPI stringTypeAPI;
     private final AdsTxtEntryDTOTypeAPI adsTxtEntryDTOTypeAPI;
+    private final ConversionsTypeAPI conversionsTypeAPI;
 
     private final HollowObjectProvider stringProvider;
     private final HollowObjectProvider adsTxtEntryDTOProvider;
+    private final HollowObjectProvider conversionsProvider;
 
     public DomainSetsApi(HollowDataAccess dataAccess) {
         this(dataAccess, Collections.<String>emptySet());
@@ -57,7 +59,7 @@ public class DomainSetsApi extends HollowAPI implements  HollowConsumerAPI.Strin
         HollowTypeDataAccess typeDataAccess;
         HollowFactory factory;
 
-        objectCreationSampler = new HollowObjectCreationSampler("String","AdsTxtEntryDTO");
+        objectCreationSampler = new HollowObjectCreationSampler("String","AdsTxtEntryDTO","Conversions");
 
         typeDataAccess = dataAccess.getTypeDataAccess("String");
         if(typeDataAccess != null) {
@@ -97,6 +99,25 @@ public class DomainSetsApi extends HollowAPI implements  HollowConsumerAPI.Strin
             adsTxtEntryDTOProvider = new HollowObjectFactoryProvider(typeDataAccess, adsTxtEntryDTOTypeAPI, factory);
         }
 
+        typeDataAccess = dataAccess.getTypeDataAccess("Conversions");
+        if(typeDataAccess != null) {
+            conversionsTypeAPI = new ConversionsTypeAPI(this, (HollowObjectTypeDataAccess)typeDataAccess);
+        } else {
+            conversionsTypeAPI = new ConversionsTypeAPI(this, new HollowObjectMissingDataAccess(dataAccess, "Conversions"));
+        }
+        addTypeAPI(conversionsTypeAPI);
+        factory = factoryOverrides.get("Conversions");
+        if(factory == null)
+            factory = new ConversionsHollowFactory();
+        if(cachedTypes.contains("Conversions")) {
+            HollowObjectCacheProvider previousCacheProvider = null;
+            if(previousCycleAPI != null && (previousCycleAPI.conversionsProvider instanceof HollowObjectCacheProvider))
+                previousCacheProvider = (HollowObjectCacheProvider) previousCycleAPI.conversionsProvider;
+            conversionsProvider = new HollowObjectCacheProvider(typeDataAccess, conversionsTypeAPI, factory, previousCacheProvider);
+        } else {
+            conversionsProvider = new HollowObjectFactoryProvider(typeDataAccess, conversionsTypeAPI, factory);
+        }
+
     }
 
     public void detachCaches() {
@@ -104,6 +125,8 @@ public class DomainSetsApi extends HollowAPI implements  HollowConsumerAPI.Strin
             ((HollowObjectCacheProvider)stringProvider).detach();
         if(adsTxtEntryDTOProvider instanceof HollowObjectCacheProvider)
             ((HollowObjectCacheProvider)adsTxtEntryDTOProvider).detach();
+        if(conversionsProvider instanceof HollowObjectCacheProvider)
+            ((HollowObjectCacheProvider)conversionsProvider).detach();
     }
 
     public StringTypeAPI getStringTypeAPI() {
@@ -111,6 +134,9 @@ public class DomainSetsApi extends HollowAPI implements  HollowConsumerAPI.Strin
     }
     public AdsTxtEntryDTOTypeAPI getAdsTxtEntryDTOTypeAPI() {
         return adsTxtEntryDTOTypeAPI;
+    }
+    public ConversionsTypeAPI getConversionsTypeAPI() {
+        return conversionsTypeAPI;
     }
     public Collection<HString> getAllHString() {
         HollowTypeDataAccess tda = Objects.requireNonNull(getDataAccess().getTypeDataAccess("String"), "type not loaded or does not exist in dataset; type=String");
@@ -135,6 +161,18 @@ public class DomainSetsApi extends HollowAPI implements  HollowConsumerAPI.Strin
     public AdsTxtEntryDTO getAdsTxtEntryDTO(int ordinal) {
         objectCreationSampler.recordCreation(1);
         return (AdsTxtEntryDTO)adsTxtEntryDTOProvider.getHollowObject(ordinal);
+    }
+    public Collection<Conversions> getAllConversions() {
+        HollowTypeDataAccess tda = Objects.requireNonNull(getDataAccess().getTypeDataAccess("Conversions"), "type not loaded or does not exist in dataset; type=Conversions");
+        return new AllHollowRecordCollection<Conversions>(tda.getTypeState()) {
+            protected Conversions getForOrdinal(int ordinal) {
+                return getConversions(ordinal);
+            }
+        };
+    }
+    public Conversions getConversions(int ordinal) {
+        objectCreationSampler.recordCreation(2);
+        return (Conversions)conversionsProvider.getHollowObject(ordinal);
     }
     public void setSamplingDirector(HollowSamplingDirector director) {
         super.setSamplingDirector(director);

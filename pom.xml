@@ -78,7 +78,7 @@
        <configuration>
          <apiClassName>DomainSetsApi</apiClassName>
          <apiPackageName>how.hollow.consumer.api.generated</apiPackageName>
-         <packagesToScan>how.hollow.producer.domain.adstxt</packagesToScan>
+         <packagesToScan>how.hollow.producer.domain.adstxt,how.hollow.producer.domain.index</packagesToScan>
        </configuration>
        <executions>
          <execution>

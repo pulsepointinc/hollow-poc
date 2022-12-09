@@ -21,23 +21,35 @@ import com.netflix.hollow.api.consumer.HollowConsumer;
 import com.netflix.hollow.api.consumer.fs.HollowFilesystemAnnouncementWatcher;
 import com.netflix.hollow.api.consumer.fs.HollowFilesystemBlobRetriever;
 import com.netflix.hollow.api.consumer.index.HashIndex;
+import com.netflix.hollow.api.consumer.index.UniqueKeyIndex;
 import com.netflix.hollow.core.read.engine.HollowReadStateEngine;
 import com.netflix.hollow.core.read.engine.HollowTypeReadState;
 import com.netflix.hollow.explorer.ui.jetty.HollowExplorerUIServer;
 import com.netflix.hollow.history.ui.jetty.HollowHistoryUIServer;
 import how.hollow.consumer.api.generated.AdsTxtEntryDTO;
+import how.hollow.consumer.api.generated.Conversions;
 import how.hollow.consumer.api.generated.DomainSetsApi;
 
 import java.io.File;
+import java.util.function.Consumer;
 
-public class Consumer {
+public class ConsumerApp {
 
     public static final String SCRATCH_DIR = System.getProperty("java.io.tmpdir");
-    
-    
+
+
     public static void main(String args[]) throws Exception {
-        HollowConsumer consumer = startConsumer(new File(SCRATCH_DIR, "publish-dir"), "019agora.com.br");
-        HollowConsumer consumerApp = startConsumer(new File(SCRATCH_DIR, "publish-dir-app"), "wcyb.com");
+        HollowConsumer consumer =
+                startConsumer(
+                        new File(SCRATCH_DIR, "publish-dir"),
+                        hollowConsumer -> exampleAdsTxtDto("019agora.com.br", hollowConsumer));
+        HollowConsumer consumerApp = startConsumer(
+                new File(SCRATCH_DIR, "publish-dir-app"),
+                hollowConsumer -> exampleAdsTxtDto("019agora.com.br", hollowConsumer));
+        HollowConsumer consumerConversions =
+                startConsumer(
+                        new File(SCRATCH_DIR, "publish-dir-conversions"),
+                        hollowConsumer -> exampleConversions(500003, hollowConsumer));
 
         /// start a history server on port 7777
         HollowHistoryUIServer historyServer = new HollowHistoryUIServer(consumer, 7777);
@@ -59,7 +71,7 @@ public class Consumer {
         historyServer.join();
     }
 
-    private static HollowConsumer startConsumer(File publishDir, String exampleQueryElement) {
+    private static HollowConsumer startConsumer(File publishDir, Consumer<HollowConsumer> example) {
         System.out.println("I AM THE CONSUMER.  I WILL READ FROM " + publishDir.getAbsolutePath());
 
         HollowConsumer.BlobRetriever blobRetriever = new HollowFilesystemBlobRetriever(publishDir.toPath());
@@ -72,15 +84,27 @@ public class Consumer {
 
         consumer.triggerRefresh();
 
+        example.accept(consumer);
+
+        System.out.println("Total memory read from " + publishDir.getName() + ": " + memStat(consumer));
+        return consumer;
+    }
+
+    private static void exampleAdsTxtDto(String exampleQueryElement, HollowConsumer consumer) {
         HashIndex<AdsTxtEntryDTO, String> findByDomain = HashIndex.from(consumer, AdsTxtEntryDTO.class)
             .usingPath("domain.value", String.class);
 
         findByDomain.findMatches(exampleQueryElement).forEach(adsTxtEntryDTO -> {
             System.out.println("From " + adsTxtEntryDTO.toString());
         });
+    }
 
-        System.out.println("Total memory read from " + publishDir.getName() + ": " + memStat(consumer));
-        return consumer;
+
+    private static void exampleConversions(long exampleQueryElement, HollowConsumer consumer) {
+        UniqueKeyIndex<Conversions, Long> index = Conversions.uniqueIndex(consumer);
+
+        Conversions conversions = index.findMatch(exampleQueryElement);
+        System.out.println(conversions);
     }
 
     public static long memStat(HollowConsumer consumer) {
